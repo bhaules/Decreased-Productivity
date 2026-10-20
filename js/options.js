@@ -1,16 +1,26 @@
 // (c) Andrew
 // Icon by dunedhel: http://dunedhel.deviantart.com/
 // Supporting functions by AdThwart - T. Joseph
-var version = (function () {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', chrome.extension.getURL('manifest.json'), false);
-	xhr.send(null);
-	return JSON.parse(xhr.responseText).version;
-}());
-var bkg = chrome.extension.getBackgroundPage();
+// MV3 migration: use chrome.storage.local instead of localStorage/getBackgroundPage
+
+var version = chrome.runtime.getManifest().version;
 var error = false;
 var oldglobalstate = false;
 var settingnames = [];
+
+// Storage helpers
+function storageGet(key, callback) {
+	chrome.storage.local.get(key, function(items) {
+		callback(items[key]);
+	});
+}
+function storageSet(obj) {
+	chrome.storage.local.set(obj);
+}
+function storageGetAll(callback) {
+	chrome.storage.local.get(null, callback);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 	$("#tabs").tabs();
 	$("#o1").slider({min: 0, max: 1, step: 0.05, slide: function(event, ui) { $("#opacity1").val(ui.value); opacitytest(); }, stop: function(event, ui) { 
@@ -57,8 +67,6 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 	$("#pageTitleText").blur(pageTitleValidation);
 	$("#font").change(function() {
-		//if ($(this).val() == '-Unchanged-') $("#fontsize").parent().parent().hide();
-		//else $("#fontsize").parent().parent().show();
 		updateDemo();
 	});
 	// Hotkey
@@ -114,20 +122,20 @@ function keyhandle(keypressed) {
 		}
 	}
 }
-function loadCheckbox(id) {
-	document.getElementById(id).checked = typeof localStorage[id] == "undefined" ? false : localStorage[id] == "true";
+function loadCheckbox(id, val) {
+	document.getElementById(id).checked = typeof val == "undefined" ? false : val == "true";
 }
 
-function loadElement(id) {
-	$("#"+id).val(localStorage[id]);
+function loadElement(id, val) {
+	if (typeof val !== "undefined") $("#"+id).val(val);
 }
 
-function saveCheckbox(id) {
-	localStorage[id] = document.getElementById(id).checked;
+function saveCheckbox(id, obj) {
+	obj[id] = document.getElementById(id).checked ? "true" : "false";
 }
 
-function saveElement(id) {
-	localStorage[id] = $("#"+id).val();
+function saveElement(id, obj) {
+	obj[id] = $("#"+id).val();
 }
 function closeOptions() {
 	window.open('', '_self', '');window.close();
@@ -225,57 +233,59 @@ function i18load() {
 function loadOptions() {
 	document.title = chrome.i18n.getMessage("dpoptions");
 	i18load();
-	oldglobalstate = localStorage["global"];
-	loadCheckbox("enable");
-	loadCheckbox("global");
-	loadCheckbox("enableToggle");
-	loadElement("hotkey");
-	loadElement("paranoidhotkey");
-	if ($("#hotkey").val()) $("#hotkey").val($("#hotkey").val().toUpperCase());
-	if ($("#paranoidhotkey").val()) $("#paranoidhotkey").val($("#paranoidhotkey").val().toUpperCase());
-	loadElement("newPages");
-	loadElement("sfwmode");
-	loadElement("opacity1");
-	loadElement("opacity2");
-	loadCheckbox("collapseimage");
-	loadCheckbox("showIcon");
-	loadElement("iconType");
-	loadElement("iconTitle");
-	loadCheckbox("disableFavicons");
-	loadCheckbox("hidePageTitles");
-	loadElement("pageTitleText");
-	loadElement("maxwidth");
-	loadElement("maxheight");
-	loadCheckbox("enableStickiness");
-	loadCheckbox("showContext");
-	loadCheckbox("showUnderline");
-	loadCheckbox("removeBold");
-	loadCheckbox("showUpdateNotifications");
-	loadElement("font");
-	loadElement("customfont");
-	loadElement("fontsize");
-	loadElement("s_text");
-	loadElement("s_bg");
-	loadElement("s_table");
-	loadElement("s_link");
-	if ($('#global').is(':checked')) $("#newPagesRow").css('display', 'none');
-	if ($('#showIcon').is(':checked')) $(".discreeticonrow").show();
-	if ($('#enableToggle').is(':checked')) $("#hotkeyrow, #paranoidhotkeyrow").show();
-	$("#sampleicon").attr('src', '../img/addressicon/'+$('#iconType').val()+'.png');
-	if (!$('#hidePageTitles').is(':checked')) $("#pageTitle").css('display', 'none');
-	if ($('#opacity1').val() == 0) $("#collapseimageblock").css('display', 'block');
-	if ($('#sfwmode').val() == 'SFW' || $('#sfwmode').val() == 'SFW1' || $('#sfwmode').val() == 'SFW2') $("#opacityrow").show();
-	if ($('#font').val() == '-Custom-') {
-		if ($("#customfont").val()) $("#customfontrow").show();
-		else {
-			$('#font').val('Arial');
-			$("#customfontrow").hide();
+	storageGetAll(function(items) {
+		oldglobalstate = items["global"] || "false";
+		loadCheckbox("enable", items["enable"]);
+		loadCheckbox("global", items["global"]);
+		loadCheckbox("enableToggle", items["enableToggle"]);
+		loadElement("hotkey", items["hotkey"]);
+		loadElement("paranoidhotkey", items["paranoidhotkey"]);
+		if ($("#hotkey").val()) $("#hotkey").val($("#hotkey").val().toUpperCase());
+		if ($("#paranoidhotkey").val()) $("#paranoidhotkey").val($("#paranoidhotkey").val().toUpperCase());
+		loadElement("newPages", items["newPages"]);
+		loadElement("sfwmode", items["sfwmode"]);
+		loadElement("opacity1", items["opacity1"]);
+		loadElement("opacity2", items["opacity2"]);
+		loadCheckbox("collapseimage", items["collapseimage"]);
+		loadCheckbox("showIcon", items["showIcon"]);
+		loadElement("iconType", items["iconType"]);
+		loadElement("iconTitle", items["iconTitle"]);
+		loadCheckbox("disableFavicons", items["disableFavicons"]);
+		loadCheckbox("hidePageTitles", items["hidePageTitles"]);
+		loadElement("pageTitleText", items["pageTitleText"]);
+		loadElement("maxwidth", items["maxwidth"]);
+		loadElement("maxheight", items["maxheight"]);
+		loadCheckbox("enableStickiness", items["enableStickiness"]);
+		loadCheckbox("showContext", items["showContext"]);
+		loadCheckbox("showUnderline", items["showUnderline"]);
+		loadCheckbox("removeBold", items["removeBold"]);
+		loadCheckbox("showUpdateNotifications", items["showUpdateNotifications"]);
+		loadElement("font", items["font"]);
+		loadElement("customfont", items["customfont"]);
+		loadElement("fontsize", items["fontsize"]);
+		loadElement("s_text", items["s_text"]);
+		loadElement("s_bg", items["s_bg"]);
+		loadElement("s_table", items["s_table"]);
+		loadElement("s_link", items["s_link"]);
+		if ($('#global').is(':checked')) $("#newPagesRow").css('display', 'none');
+		if ($('#showIcon').is(':checked')) $(".discreeticonrow").show();
+		if ($('#enableToggle').is(':checked')) $("#hotkeyrow, #paranoidhotkeyrow").show();
+		$("#sampleicon").attr('src', '../img/addressicon/'+$('#iconType').val()+'.png');
+		if (!$('#hidePageTitles').is(':checked')) $("#pageTitle").css('display', 'none');
+		if ($('#opacity1').val() == 0) $("#collapseimageblock").css('display', 'block');
+		if ($('#sfwmode').val() == 'SFW' || $('#sfwmode').val() == 'SFW1' || $('#sfwmode').val() == 'SFW2') $("#opacityrow").show();
+		if ($('#font').val() == '-Custom-') {
+			if ($("#customfont").val()) $("#customfontrow").show();
+			else {
+				$('#font').val('Arial');
+				$("#customfontrow").hide();
+			}
 		}
-	}
-	loadElement("customcss");
-	listUpdate();
-	opacitytest();
-	updateDemo();
+		loadElement("customcss", items["customcss"]);
+		listUpdate();
+		opacitytest();
+		updateDemo();
+	});
 }
 function isValidColor(hex) { 
 	var strPattern = /^[0-9a-f]{3,6}$/i; 
@@ -299,54 +309,59 @@ function saveOptions() {
 	else $("#customfontrow").hide();
 	if (!$("#hotkey").val()) $("#hotkey").val('CTRL F12');
 	if (!$("#paranoidhotkey").val()) $("#paranoidhotkey").val('ALT P');
-	saveCheckbox("enable");
-	saveCheckbox("global");
-	saveCheckbox("enableToggle");
-	saveElement("hotkey");
-	saveElement("paranoidhotkey");
-	saveElement("opacity1");
-	saveElement("opacity2");
-	saveCheckbox("collapseimage");
-	saveElement("newPages");
-	saveElement("sfwmode");
-	saveCheckbox("showIcon");
-	saveElement("iconType");
-	saveElement("iconTitle");
-	saveCheckbox("disableFavicons");
-	saveCheckbox("hidePageTitles");
-	saveElement("pageTitleText");
-	saveElement("maxwidth");
-	saveElement("maxheight");
-	saveCheckbox("enableStickiness");
-	saveCheckbox("showContext");
-	saveCheckbox("showUnderline");
-	saveCheckbox("removeBold");
-	saveCheckbox("showUpdateNotifications");
-	saveElement("font");
-	saveElement("customfont");
-	saveElement("fontsize");
+
+	var obj = {};
+	saveCheckbox("enable", obj);
+	saveCheckbox("global", obj);
+	saveCheckbox("enableToggle", obj);
+	saveElement("hotkey", obj);
+	saveElement("paranoidhotkey", obj);
+	saveElement("opacity1", obj);
+	saveElement("opacity2", obj);
+	saveCheckbox("collapseimage", obj);
+	saveElement("newPages", obj);
+	saveElement("sfwmode", obj);
+	saveCheckbox("showIcon", obj);
+	saveElement("iconType", obj);
+	saveElement("iconTitle", obj);
+	saveCheckbox("disableFavicons", obj);
+	saveCheckbox("hidePageTitles", obj);
+	saveElement("pageTitleText", obj);
+	saveElement("maxwidth", obj);
+	saveElement("maxheight", obj);
+	saveCheckbox("enableStickiness", obj);
+	saveCheckbox("showContext", obj);
+	saveCheckbox("showUnderline", obj);
+	saveCheckbox("removeBold", obj);
+	saveCheckbox("showUpdateNotifications", obj);
+	saveElement("font", obj);
+	saveElement("customfont", obj);
+	saveElement("fontsize", obj);
+
 	if ($('#showIcon').is(':checked')) {
 		$(".discreeticonrow").show();
-		bkg.setDPIcon();
 	} else $(".discreeticonrow").hide();
+
 	if (isValidColor($('#s_text').val()) && isValidColor($('#s_bg').val()) && isValidColor($('#s_table').val()) && isValidColor($('#s_link').val())) {
-		saveElement("s_text");
-		saveElement("s_bg");
-		saveElement("s_table");
-		saveElement("s_link");
+		saveElement("s_text", obj);
+		saveElement("s_bg", obj);
+		saveElement("s_table", obj);
+		saveElement("s_link", obj);
 	} else {
 		error = true;
 	}
 	$("#customcss").val($("#customcss").val().replace(/\s*<([^>]+)>\s*/ig, ""));
-	saveElement("customcss");
-	updateExport();
-	// Apply new settings
-	bkg.optionsSaveTrigger(oldglobalstate, localStorage["global"]);
-	bkg.hotkeyChange();
-	oldglobalstate = localStorage["global"];
-	// Remove any existing styling
-	if (!error) notification(chrome.i18n.getMessage("saved"));
-	else notification(chrome.i18n.getMessage("invalidcolour"));
+	saveElement("customcss", obj);
+
+	// Save to storage, then notify background to apply changes
+	chrome.storage.local.set(obj, function() {
+		chrome.runtime.sendMessage({reqtype: "options-saved", prevglobal: oldglobalstate});
+		oldglobalstate = obj["global"];
+		updateExport();
+		if (!error) notification(chrome.i18n.getMessage("saved"));
+		else notification(chrome.i18n.getMessage("invalidcolour"));
+		error = false;
+	});
 }
 
 function opacitytest() {
@@ -387,7 +402,7 @@ function fontsizeValidation() {
 }
 
 function notification(msg) {
-	$('#message').html(msg).stop().fadeIn("slow").delay(2000).fadeOut("slow")
+	$('#message').html(msg).stop().fadeIn("slow").delay(2000).fadeOut("slow");
 }
 function truncText(str) {
 	if (str.length > 16) return str.substr(0, 16)+'...';
@@ -415,7 +430,7 @@ function updateDemo() {
 	if ($('#showUnderline').is(':checked')) $("#t_link").css('textDecoration', 'underline');
 	else $("#t_link").css('textDecoration', 'none');
 	if ($("#sfwmode").val() == 'Paranoid') $(".sampleimage").attr('style','visibility: hidden');
-	else if ($("#sfwmode").val() == 'NSFW') $(".sampleimage").attr('style','visibility: visible; opacity: 1 !important;').unbind();
+	else if ($("#sfwmode").val() == 'NSFW') $(".sampleimage").attr('style','visibility: visible; opacity: 1 !important;').off();
 	else opacitytest();
 }
 
@@ -488,60 +503,70 @@ function addList(type) {
 	var domain = $('#url').val();
 	domain = domain.toLowerCase();
 	
-	if (!domain.match(/^(?:[\-\w\*\?]+(\.[\-\w\*\?]+)*|((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})|\[[A-Fa-f0-9:.]+\])?$/g)) {
+	if (!domain.match(/^(?:[\-\w\*\?]+(\.['\-\w\*\?]+)*|((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})|\[[A-Fa-f0-9:.]+\])?$/g)) {
 		$('#listMsg').html(chrome.i18n.getMessage("invaliddomain")).stop().fadeIn("slow").delay(2000).fadeOut("slow");
 	} else {
-		bkg.domainHandler(domain, type);
-		$('#url').val('');
-		$('#listMsg').html([chrome.i18n.getMessage("whitelisted"),chrome.i18n.getMessage("blacklisted")][type]+' '+domain+'.').stop().fadeIn("slow").delay(2000).fadeOut("slow");
-		listUpdate();
-		$('#url').focus();
+		chrome.runtime.sendMessage({reqtype: "domain-handler", domain: domain, action: type}, function() {
+			$('#url').val('');
+			$('#listMsg').html([chrome.i18n.getMessage("whitelisted"),chrome.i18n.getMessage("blacklisted")][type]+' '+domain+'.').stop().fadeIn("slow").delay(2000).fadeOut("slow");
+			listUpdate();
+			$('#url').focus();
+		});
 	}
 	return false;
 }
 function domainRemover(domain) {
-	bkg.domainHandler(domain,2);
-	listUpdate();
+	chrome.runtime.sendMessage({reqtype: "domain-handler", domain: domain, action: 2}, function() {
+		listUpdate();
+	});
 	return false;
 }
 function listUpdate() {
-	var whiteList = JSON.parse(localStorage['whiteList']);
-	var blackList = JSON.parse(localStorage['blackList']);
-	
-	var whitelistCompiled = '';
-	if(whiteList.length==0) whitelistCompiled = '['+chrome.i18n.getMessage("empty")+']';
-	else {
-		whiteList.sort();
-		for(i in whiteList) whitelistCompiled += '<div class="listentry">'+whiteList[i]+' <a href="javascript:;" style="color:#f00;float:right;" rel="'+whiteList[i]+'" class="domainRemover">X</a></div>';
-	}
-	var blacklistCompiled = '';
-	if (blackList.length==0) blacklistCompiled = '['+chrome.i18n.getMessage("empty")+']';
-	else {
-		blackList.sort();
-		for(i in blackList) blacklistCompiled += '<div class="listentry">'+blackList[i]+' <a href="javascript:;" style="color:#f00;float:right;" rel="'+blackList[i]+'" class="domainRemover">X</a></div>';
-	}
-	$('#whitelist').html(whitelistCompiled);
-	$('#blacklist').html(blacklistCompiled);
-	$(".domainRemover").unbind('click');
-	$(".domainRemover").click(function() { domainRemover($(this).attr('rel'));});
-	bkg.initLists();
-	updateExport();
+	chrome.storage.local.get(['whiteList','blackList'], function(items) {
+		var whiteList = JSON.parse(items['whiteList'] || '[]');
+		var blackList = JSON.parse(items['blackList'] || '[]');
+		
+		var whitelistCompiled = '';
+		if(whiteList.length==0) whitelistCompiled = '['+chrome.i18n.getMessage("empty")+']';
+		else {
+			whiteList.sort();
+			for(var i in whiteList) whitelistCompiled += '<div class="listentry">'+whiteList[i]+' <a href="javascript:;" style="color:#f00;float:right;" rel="'+whiteList[i]+'" class="domainRemover">X</a></div>';
+		}
+		var blacklistCompiled = '';
+		if (blackList.length==0) blacklistCompiled = '['+chrome.i18n.getMessage("empty")+']';
+		else {
+			blackList.sort();
+			for(var i in blackList) blacklistCompiled += '<div class="listentry">'+blackList[i]+' <a href="javascript:;" style="color:#f00;float:right;" rel="'+blackList[i]+'" class="domainRemover">X</a></div>';
+		}
+		$('#whitelist').html(whitelistCompiled);
+		$('#blacklist').html(blacklistCompiled);
+		$(".domainRemover").off('click');
+		$(".domainRemover").click(function() { domainRemover($(this).attr('rel'));});
+		updateExport();
+	});
 }
 function listclear(type) {
 	if (confirm([chrome.i18n.getMessage("removefromwhitelist"),chrome.i18n.getMessage("removefromblacklist")][type]+'?')) {
-		localStorage[['whiteList','blackList'][type]] = JSON.stringify([]);
-		listUpdate();
+		var key = ['whiteList','blackList'][type];
+		var obj = {};
+		obj[key] = JSON.stringify([]);
+		chrome.storage.local.set(obj, function() {
+			chrome.runtime.sendMessage({reqtype: "init-lists"});
+			listUpdate();
+		});
 	}
 	return false;
 }
 // from KB SSL Enforcer: https://code.google.com/p/kbsslenforcer/ -->
 
 function revertColours(s) {
-	$('#s_bg').val(localStorage['s_bg']);
-	$('#s_text').val(localStorage['s_text']);
-	$('#s_link').val(localStorage['s_link']);
-	$('#s_table').val(localStorage['s_table']);
-	updateDemo();
+	chrome.storage.local.get(['s_bg','s_text','s_link','s_table'], function(items) {
+		$('#s_bg').val(items['s_bg']);
+		$('#s_text').val(items['s_text']);
+		$('#s_link').val(items['s_link']);
+		$('#s_table').val(items['s_table']);
+		updateDemo();
+	});
 }
 
 function colorPickLoad(id) {
@@ -563,53 +588,59 @@ function downloadtxt() {
 	var downloadLink = document.createElement("a");
 	downloadLink.download = fileNameToSaveAs;
 	downloadLink.innerHTML = "Download File";
-	downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+	downloadLink.href = URL.createObjectURL(textFileAsBlob);
 	downloadLink.click();
 	downloadLink.remove();
 }
 function updateExport() {
-	$("#settingsexport").val("");
-	settingnames = [];
-	for (var i in localStorage) {
-		if (localStorage.hasOwnProperty(i)) {
-			if (i != "version") {
-				settingnames.push(i);
-				$("#settingsexport").val($("#settingsexport").val()+i+"|"+localStorage[i].replace(/(?:\r\n|\r|\n)/g, ' ')+"\n");
+	chrome.storage.local.get(null, function(items) {
+		$("#settingsexport").val("");
+		settingnames = [];
+		for (var i in items) {
+			if (items.hasOwnProperty(i)) {
+				if (i != "version") {
+					settingnames.push(i);
+					var val = (typeof items[i] === 'string') ? items[i] : JSON.stringify(items[i]);
+					$("#settingsexport").val($("#settingsexport").val()+i+"|"+val.replace(/(?:\r\n|\r|\n)/g, ' ')+"\n");
+				}
 			}
 		}
-	}
-	$("#settingsexport").val($("#settingsexport").val().slice(0,-1));
+		$("#settingsexport").val($("#settingsexport").val().slice(0,-1));
+	});
 }
 function settingsImport() {
-	var error = "";
-	var settings = $("#settingsimport").val().split("\n");
+	var importError = "";
+	var settings_text = $("#settingsimport").val().split("\n");
 	if ($.trim($("#settingsimport").val()) == "") {
 		notification(chrome.i18n.getMessage("pastesettings"));
 		return false;
 	}
-	if (settings.length > 0) {
-		$.each(settings, function(i, v) {
+	var importObj = {};
+	if (settings_text.length > 0) {
+		$.each(settings_text, function(i, v) {
 			if ($.trim(v) != "") {
 				var settingentry = $.trim(v).split("|");
 				if (settingnames.indexOf($.trim(settingentry[0])) != -1) {
 					if ($.trim(settingentry[0]) == 'whiteList' || $.trim(settingentry[0]) == 'blackList') {
 						var listarray = $.trim(settingentry[1]).replace(/(\[|\]|")/g,"").split(",");
-						if ($.trim(settingentry[0]) == 'whiteList' && listarray.toString() != '') localStorage['whiteList'] = JSON.stringify(listarray);
-						else if ($.trim(settingentry[0]) == 'blackList' && listarray.toString() != '') localStorage['blackList'] = JSON.stringify(listarray);
-					} else 
-						localStorage[$.trim(settingentry[0])] = $.trim(settingentry[1]);
+						if ($.trim(settingentry[0]) == 'whiteList' && listarray.toString() != '') importObj['whiteList'] = JSON.stringify(listarray);
+						else if ($.trim(settingentry[0]) == 'blackList' && listarray.toString() != '') importObj['blackList'] = JSON.stringify(listarray);
+					} else {
+						importObj[$.trim(settingentry[0])] = $.trim(settingentry[1]);
+					}
 				} else {
-					error += $.trim(settingentry[0])+", ";
+					importError += $.trim(settingentry[0])+", ";
 				}
 			}
 		});
 	}
-	loadOptions();
-	listUpdate();
-	if (!error) {
-		notification(chrome.i18n.getMessage("importsuccessoptions"));
-		$("#settingsimport").val("");
-	} else {
-		notification(chrome.i18n.getMessage("importsuccesscond")+error.slice(0, -2));
-	}
+	chrome.storage.local.set(importObj, function() {
+		loadOptions();
+		if (!importError) {
+			notification(chrome.i18n.getMessage("importsuccessoptions"));
+			$("#settingsimport").val("");
+		} else {
+			notification(chrome.i18n.getMessage("importsuccesscond")+importError.slice(0, -2));
+		}
+	});
 }

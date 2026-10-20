@@ -1,3 +1,16 @@
+v0.47.0.0 - Manifest V3 Migration
+- Migrate extension to Chrome Manifest V3 (MV3)
+- Replace background page with service worker
+- Replace localStorage with chrome.storage.local
+- Replace chrome.tabs.executeScript with chrome.scripting.executeScript
+- Replace page_action with chrome.action API
+- Replace contextMenus onclick property with chrome.contextMenus.onClicked listener
+- Replace chrome.extension.getBackgroundPage() with message passing
+- Replace synchronous XHR with chrome.runtime.getManifest()
+- Replace deprecated jQuery .bind()/.unbind() with .on()/.off()
+- Move host permissions to host_permissions in manifest
+- Bump minimum Chrome version to 109
+
 v0.46.56.11 - Friday, October 12, 2018
 - Fix WhatsApp Web blank white screen upon login
 - Add Turkish translation - thanks Serdar!

@@ -1,7 +1,7 @@
 # Decreased Productivity
 Discreetly surf the web! Control exactly how you want web pages to look like. A Chrome and Firefox extension.
 
-* Chrome: https://chrome.google.com/webstore/detail/decreased-productivity/nlbpiflhmdcklcbihngeffpmoklbiooj
+* Chrome Web Store: https://chrome.google.com/webstore/detail/decreased-productivity/nlbpiflhmdcklcbihngeffpmoklbiooj
 * Firefox: https://addons.mozilla.org/firefox/addon/decreased-productivity-andryou/
 
 Decreased Productivity (DP) creates a more "consistent" browsing experience (for you and others around you) by letting you control what you want to see ("stealth browsing" => text/page background colours, the cloaking of images, hiding page favicons, changing fonts, etc.). You can choose what style you want (e.g. green text on a black background) by going to the Options page (right-click on icon in address bar and click on "Options"). DP has tab-specific support and domain whitelisting/blacklisting!
@@ -17,7 +17,7 @@ Featured on Lifehacker: http://lifehacker.com/5666312/decreased-productivity-for
 * set page background, text, link, and table border colours
 * hide page icons (aka favicons)
 * replace page titles
-* keyboard toggle (CTRL/CMD + 12)
+* keyboard toggle (CTRL/CMD + F12)
 * choose between tab-specific cloaking or global cloaking
 * choose whether new tabs are cloaked or uncloaked by default
 * control image opacity
@@ -28,9 +28,34 @@ Featured on Lifehacker: http://lifehacker.com/5666312/decreased-productivity-for
 * add and customize a toggle cloak icon in address bar
 
 ## To Use
-1. Install the extension from the Chrome Web Store: https://chrome.google.com/webstore/detail/decreased-productivity/nlbpiflhmdcklcbihngeffpmoklbiooj (or download this repo and load as a local extension)
+1. Install the extension from the Chrome Web Store: https://chrome.google.com/webstore/detail/decreased-productivity/nlbpiflhmdcklcbihngeffpmoklbiooj (or download this repo and load as a local extension — see below)
 2. (optional) Allow in Incognito Mode (Incognito Mode and this extension complement each other!)
 
+### Loading as a local (unpacked) extension
+1. Open Chrome and go to `chrome://extensions/`
+2. Enable **Developer mode** (toggle in the top-right corner)
+3. Click **Load unpacked** and select this repository folder
+4. The extension will appear and the coffee-cup icon will show in your toolbar
+
+## Changelog (v0.47.0.0 — Manifest V3 Migration)
+This release migrates the extension from Chrome Manifest V2 to **Manifest V3**, required for Chrome 109+ and future compatibility.
+
+### What changed (MV3 migration)
+| Area | Old (MV2) | New (MV3) |
+|---|---|---|
+| `manifest_version` | 2 | **3** |
+| Background | `background.scripts` (persistent page) | `background.service_worker` (service worker) |
+| Page icon | `page_action` | `action` |
+| Host permissions | `permissions` array | `host_permissions` array |
+| New permission | — | `scripting` |
+| Script injection | `chrome.tabs.executeScript` | `chrome.scripting.executeScript` |
+| Storage | `localStorage` in background | `chrome.storage.local` (async) |
+| Background access | `chrome.extension.getBackgroundPage()` | `chrome.runtime.sendMessage` |
+| Context menu click | `onclick` property on menu item | `chrome.contextMenus.onClicked` listener |
+| Version detection | Synchronous XHR to `manifest.json` | `chrome.runtime.getManifest()` |
+| jQuery events | `.bind()` / `.unbind()` | `.on()` / `.off()` |
+| Blob download | `window.webkitURL.createObjectURL` | `URL.createObjectURL` |
+| Minimum Chrome | 6 | **109** |
+
 ## Showing Thanks
-* Click on the coffee-cup icon in the Options page to support me via PayPal :)
 * Bitcoin: **39VJ5L9Yd6WocG6r88uE7ZZnM5J2M5bW92**

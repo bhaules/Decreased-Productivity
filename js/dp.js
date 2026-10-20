@@ -153,7 +153,7 @@ function removeCss(name) {
 	if (typeof(name) === 'undefined') {
 		faviconrestore();
 		titleRestore();
-		jQuery('body').unbind('DOMSubtreeModified.decreasedproductivity'+timestamp);
+		jQuery('body').off('DOMSubtreeModified.decreasedproductivity'+timestamp);
 		jQuery("[__decreased__]").each(function() {
 			jQuery(this).removeClass('dp'+timestamp+'_visible dp'+timestamp+'_unbold dp'+timestamp+'_link dp'+timestamp+'_text dp'+timestamp+'_hide').removeAttr("__decreased__");
 		});
@@ -164,8 +164,8 @@ function init() {
 		if (response.enable == "true") {
 			addCloak(response.sfwmode, response.font, response.fontsize, response.underline, response.background, response.text, response.table, response.link, response.bold, response.opacity1, response.opacity2, response.collapseimage, response.customcss);
 			dpPostLoad(response.maxheight, response.maxwidth, response.sfwmode, response.bold);
-			jQuery('body').unbind('DOMSubtreeModified.decreasedproductivity'+timestamp);
-			jQuery('body').bind('DOMSubtreeModified.decreasedproductivity'+timestamp, function() {
+			jQuery('body').off('DOMSubtreeModified.decreasedproductivity'+timestamp);
+			jQuery('body').on('DOMSubtreeModified.decreasedproductivity'+timestamp, function() {
 				clearTimeout(postloaddelay);
 				postloaddelay = setTimeout(function(){ dpPostLoad(response.maxheight, response.maxwidth, response.sfwmode, response.bold) }, 500);
 			});
@@ -207,13 +207,13 @@ function replaceTitle(text) {
 	}
 }
 function titleBind(text) {
-	jQuery('title').unbind('DOMSubtreeModified.decreasedproductivity'+timestamp);
-	jQuery('title').bind('DOMSubtreeModified.decreasedproductivity'+timestamp, function() {
+	jQuery('title').off('DOMSubtreeModified.decreasedproductivity'+timestamp);
+	jQuery('title').on('DOMSubtreeModified.decreasedproductivity'+timestamp, function() {
 		replaceTitle(text);
 	});
 }
 function titleRestore() {
-	jQuery('title').unbind('DOMSubtreeModified.decreasedproductivity'+timestamp);
+	jQuery('title').off('DOMSubtreeModified.decreasedproductivity'+timestamp);
 	if (origtitle) document.title = origtitle;
 }
 function hotkeySet(hotkeyenabled, hotkey, paranoidhotkey) {
